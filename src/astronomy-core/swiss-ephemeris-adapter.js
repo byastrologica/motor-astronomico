@@ -1,11 +1,20 @@
+import { fileURLToPath } from "node:url";
+
 import {
   calc_ut,
   house_pos,
   houses_ex2,
   julday,
+  set_ephe_path,
   version,
   constants,
 } from "sweph";
+
+const ephemerisPath = fileURLToPath(
+  new URL("../../ephe/", import.meta.url),
+);
+
+set_ephe_path(ephemerisPath);
 
 const DEFAULT_FLAGS =
   constants.SEFLG_SWIEPH |
@@ -18,7 +27,8 @@ const EQUATORIAL_FLAGS =
 function validateResult(result, operation) {
   if (!result || result.flag === constants.ERR) {
     throw new Error(
-      result?.error || `Falha da Swiss Ephemeris em ${operation}.`,
+      result?.error ||
+        `Falha da Swiss Ephemeris em ${operation}.`,
     );
   }
 
@@ -94,10 +104,12 @@ export function calculateHouses({
   );
 
   return {
-    houses: result.data.houses.map((cuspLongitude, index) => ({
-      house: index + 1,
-      longitude: cuspLongitude,
-    })),
+    houses: result.data.houses.map(
+      (cuspLongitude, index) => ({
+        house: index + 1,
+        longitude: cuspLongitude,
+      }),
+    ),
     angles: {
       asc: result.data.points[constants.SE_ASC],
       mc: result.data.points[constants.SE_MC],
