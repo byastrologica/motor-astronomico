@@ -1,6 +1,11 @@
 import express from "express";
 import cors from "cors";
 
+import {
+  generateRawChart,
+  ValidationError,
+} from "./astronomy-core/raw-chart-generator.js";
+
 const app = express();
 
 app.disable("x-powered-by");
@@ -13,6 +18,10 @@ app.get("/", (request, response) => {
     version: "1.0.0",
     status: "online",
     description: "API publica de dados astronomicos",
+    endpoints: {
+      health: "GET /health",
+      chart: "POST /v1/chart",
+    },
   });
 });
 
@@ -23,6 +32,15 @@ app.get("/health", (request, response) => {
   });
 });
 
+app.post("/v1/chart", (request, response, next) => {
+  try {
+    const chart = generateRawChart(request.body);
+    response.status(200).json(chart);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use((request, response) => {
   response.status(404).json({
     error: "NOT_FOUND",
@@ -31,11 +49,26 @@ app.use((request, response) => {
 });
 
 app.use((error, request, response, next) => {
+  if (error instanceof ValidationError) {
+    return response.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: error.message,
+      details: error.details,
+    });
+  }
+
+  if (error instanceof SyntaxError && error.status === 400) {
+    return response.status(400).json({
+      error: "INVALID_JSON",
+      message: "O corpo da requisicao contem JSON invalido.",
+    });
+  }
+
   console.error(error);
 
-  response.status(500).json({
-    error: "INTERNAL_SERVER_ERROR",
-    message: "Ocorreu um erro interno.",
+  return response.status(500).json({
+    error: "ASTRONOMY_CALCULATION_ERROR",
+    message: "Nao foi possivel realizar o calculo astronomico.",
   });
 });
 
