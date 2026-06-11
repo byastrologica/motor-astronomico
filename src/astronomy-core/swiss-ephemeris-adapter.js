@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   calc_ut,
+  fixstar2_ut,
   house_pos,
   houses_ex2,
   julday,
@@ -62,6 +63,38 @@ export function calculateBody(julianDay, bodyId) {
   );
 
   return {
+    longitude: ecliptic.data[0],
+    latitudeEcliptica: ecliptic.data[1],
+    distanceAU: ecliptic.data[2],
+    speedLongitude: ecliptic.data[3],
+    speedLatitude: ecliptic.data[4],
+    speedRadial: ecliptic.data[5],
+    rightAscension: equatorial.data[0],
+    declination: equatorial.data[1],
+  };
+}
+
+export function calculateFixedStar(julianDay, starName) {
+  const ecliptic = validateResult(
+    fixstar2_ut(
+      starName,
+      julianDay,
+      DEFAULT_FLAGS,
+    ),
+    `calculateFixedStar/${starName}/ecliptic`,
+  );
+
+  const equatorial = validateResult(
+    fixstar2_ut(
+      starName,
+      julianDay,
+      EQUATORIAL_FLAGS,
+    ),
+    `calculateFixedStar/${starName}/equatorial`,
+  );
+
+  return {
+    catalogName: ecliptic.name,
     longitude: ecliptic.data[0],
     latitudeEcliptica: ecliptic.data[1],
     distanceAU: ecliptic.data[2],
