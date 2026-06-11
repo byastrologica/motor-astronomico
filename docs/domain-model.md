@@ -1,6 +1,3 @@
-Você tem razão, faltou o conteúdo. Crie o arquivo `docs/domain-model.md` e cole **tudo abaixo**:
-
-```markdown
 # Modelo de Domínio — Astrologica Engine
 
 ## 1. Objetivo
