@@ -171,13 +171,13 @@ export function calculateHousePosition({
   if (!result || result.error) {
     throw new Error(
       result?.error ||
-        "Falha ao determinar a casa ocupada pelo corpo.",
+        "Falha ao determinar a posicao mundana do corpo.",
     );
   }
 
-  const house = Math.floor(result.data);
-
-  return house >= 1 && house <= 12 ? house : null;
+  return result.data >= 1 && result.data < 13
+    ? result.data
+    : null;
 }
 
 export function getEphemerisVersion() {
@@ -195,8 +195,11 @@ export const bodyIds = Object.freeze({
   URANO: constants.SE_URANUS,
   NETUNO: constants.SE_NEPTUNE,
   PLUTAO: constants.SE_PLUTO,
-  NODO_NORTE: constants.SE_MEAN_NODE,
+
+  NODO_NORTE_MEDIO: constants.SE_MEAN_NODE,
+  NODO_NORTE_VERDADEIRO: constants.SE_TRUE_NODE,
   LILITH_MEDIA: constants.SE_MEAN_APOG,
+
   QUIRON: constants.SE_CHIRON,
   CERES: constants.SE_CERES,
   PALLAS: constants.SE_PALLAS,
