@@ -1,124 +1,93 @@
-# Modelo de Domínio — Astrologica Engine
+# Modelo de Domínio — Motor Astronômico
 
 ## 1. Objetivo
 
-Este documento define o modelo de domínio inicial do Astrologica Engine.
+Este documento define as estruturas de dados da API pública Motor Astronômico.
 
-Nesta primeira tarefa, o sistema contém apenas:
+O projeto utiliza a Swiss Ephemeris para produzir dados astronômicos brutos em formato JSON.
 
-- Estruturas fundamentais do projeto.
-- Dados astronômicos.
-- Casas astrológicas.
-- Ângulos do mapa.
-- Estruturas preparatórias para objetos futuros.
-
-Este documento não implementa regras de interpretação astrológica.
+Este repositório não contém métodos, interpretações ou regras astrológicas proprietárias.
 
 ---
 
-## 2. Separação das camadas
-
-O projeto deve manter três categorias de dados rigorosamente separadas.
+## 2. Classificação dos dados
 
 ### RAW_DATA
 
-Dados obtidos diretamente da entrada do usuário ou calculados pela Swiss Ephemeris.
+Informações recebidas na requisição ou obtidas por meio da Swiss Ephemeris.
 
 Exemplos:
 
-- Data e hora.
-- Coordenadas geográficas.
-- Longitude e latitude eclípticas.
-- Declinação.
-- Ascensão reta.
-- Velocidade.
-- Cúspides das casas.
-- Ascendente.
-- Meio do Céu.
-- Vertex.
+- Data
+- Hora
+- Fuso horário
+- Coordenadas geográficas
+- Longitude eclíptica
+- Latitude eclíptica
+- Declinação
+- Ascensão reta
+- Velocidade
+- Cúspides das casas
+- Ângulos astronômicos
 
 ### GEOMETRIC_DERIVED
 
-Dados produzidos por operações geométricas realizadas sobre os dados astronômicos.
+Informações obtidas por operações geométricas sobre dados astronômicos.
 
-Exemplos futuros:
+Exemplo:
 
-- Casa ocupada por um objeto.
-- Distância angular.
-- Aspectos.
-- Paralelos.
-- Contraparalelos.
-- Orientalidade.
-- Ocidentalidade.
-
-Nesta tarefa, somente o campo `house` será preparado como dado geométrico derivado.
+- Casa ocupada por um corpo
 
 ### ASTROLOGICAL_DERIVED
 
-Dados que dependem de regras, tradições ou interpretações astrológicas.
+Informações resultantes de regras ou interpretações astrológicas.
 
-Exemplos futuros:
-
-- Dignidades.
-- Recepção.
-- Dispositores.
-- Almuten.
-- Sect.
-- Hayz.
-- Haym.
-- Lots derivados.
-- Hyleg.
-- Alcocoden.
-- Kurios.
-- Oikodespotes.
-
-Nenhuma dessas regras será calculada nesta tarefa.
+Esta categoria não será produzida pelo Motor Astronômico.
 
 ---
 
-## 3. Tipos de objetos celestes
+## 3. Tipos de objetos
 
-Todo objeto celeste deve possuir um dos seguintes tipos:
+Os objetos astronômicos podem possuir os seguintes tipos:
 
 | Tipo | Descrição |
 |---|---|
 | `PLANET` | Planeta ou luminar |
-| `NODE` | Nodo lunar |
+| `NODE` | Nodo ou ponto lunar |
 | `ASTEROID` | Asteroide ou corpo menor |
-| `LOT` | Parte ou lot astrológico |
 | `FIXED_STAR` | Estrela fixa |
-| `ANGLE` | Ângulo do mapa |
-| `ECLIPSE_POINT` | Ponto relacionado a eclipse |
+| `ANGLE` | Ângulo astronômico do mapa |
+| `ECLIPSE_POINT` | Posição associada a um eclipse |
+
+A Parte da Fortuna não pertence a esta API porque sua posição depende de uma fórmula astrológica.
 
 ---
 
-## 4. Entidade base: CelestialObject
+## 4. CelestialObject
 
-`CelestialObject` é a entidade principal do modelo.
-
-Todos os objetos celestes devem utilizar essa estrutura como base.
+`CelestialObject` é a estrutura básica dos objetos retornados pela API.
 
 ### Atributos
 
 | Atributo | Tipo | Classificação | Descrição |
 |---|---|---|---|
-| `id` | string | RAW_DATA | Identificador interno único |
-| `name` | string | RAW_DATA | Nome padronizado do objeto |
-| `type` | string | RAW_DATA | Tipo do objeto celeste |
+| `id` | string | RAW_DATA | Identificador padronizado |
+| `name` | string | RAW_DATA | Nome legível do objeto |
+| `type` | string | RAW_DATA | Tipo do objeto |
 | `longitude` | number ou null | RAW_DATA | Longitude eclíptica em graus |
-| `latitude` | number ou null | RAW_DATA | Latitude eclíptica em graus |
-| `declination` | number ou null | RAW_DATA | Declinação equatorial em graus |
+| `ecliptic_latitude` | number ou null | RAW_DATA | Latitude eclíptica em graus |
+| `declination` | number ou null | RAW_DATA | Declinação em graus |
 | `right_ascension` | number ou null | RAW_DATA | Ascensão reta em graus |
-| `speed` | number ou null | RAW_DATA | Velocidade diária em longitude |
+| `longitude_speed` | number ou null | RAW_DATA | Velocidade diária em longitude |
 | `house` | number ou null | GEOMETRIC_DERIVED | Casa ocupada pelo objeto |
 
 ### Regras
 
-- A longitude deve ser normalizada entre `0` e menos de `360` graus.
-- A casa, quando disponível, deve ser um número inteiro entre `1` e `12`.
-- Campos ainda não calculados devem possuir o valor `null`.
-- A camada Astronomy Core não pode acrescentar interpretações astrológicas.
-- O campo `house` depende da longitude do objeto e das cúspides das casas.
+- Longitudes devem estar entre `0` e menos de `360` graus.
+- A casa, quando calculada, deve estar entre `1` e `12`.
+- Dados indisponíveis devem utilizar `null`.
+- Os valores numéricos devem ser retornados sem símbolos de graus.
+- A API não deve acrescentar significados ou interpretações.
 
 ---
 
@@ -126,28 +95,24 @@ Todos os objetos celestes devem utilizar essa estrutura como base.
 
 Representa um planeta ou luminar.
 
-Planet herda todos os atributos de `CelestialObject`.
+Planet utiliza todos os atributos de `CelestialObject`.
 
 ### Objetos suportados
 
-- `SOL`
-- `LUA`
-- `MERCURIO`
-- `VENUS`
-- `MARTE`
-- `JUPITER`
-- `SATURNO`
-- `URANO`
-- `NETUNO`
-- `PLUTAO`
+| ID | Nome |
+|---|---|
+| `SOL` | Sol |
+| `LUA` | Lua |
+| `MERCURIO` | Mercúrio |
+| `VENUS` | Vênus |
+| `MARTE` | Marte |
+| `JUPITER` | Júpiter |
+| `SATURNO` | Saturno |
+| `URANO` | Urano |
+| `NETUNO` | Netuno |
+| `PLUTAO` | Plutão |
 
-### Atributos próprios
-
-Planet não possui atributos adicionais nesta tarefa.
-
-Todos os seus atributos são herdados de `CelestialObject`.
-
-### Tipo obrigatório
+### Tipo
 
 ```text
 PLANET
@@ -157,30 +122,31 @@ PLANET
 
 ## 6. Node
 
-Representa um nodo lunar.
+Representa um nodo ou ponto relacionado à órbita lunar.
 
-Node herda todos os atributos de `CelestialObject`.
+Node utiliza todos os atributos de `CelestialObject`.
 
 ### Objetos suportados
 
-- `NODO_NORTE`
-- `NODO_SUL`
+| ID | Nome |
+|---|---|
+| `NODO_NORTE` | Nodo Norte |
+| `NODO_SUL` | Nodo Sul |
+| `LILITH_MEDIA` | Lilith Média |
 
-### Atributos próprios
-
-Node não possui atributos adicionais nesta tarefa.
-
-### Tipo obrigatório
+### Tipo
 
 ```text
 NODE
 ```
 
-### Observação
+### Observações
 
-O Nodo Sul pode ser obtido geometricamente como o ponto oposto ao Nodo Norte.
+O Nodo Sul pode ser obtido como o ponto geometricamente oposto ao Nodo Norte.
 
-Essa derivação deve ser tratada posteriormente pela implementação, sem introduzir interpretação astrológica.
+Lilith Média representa o apogeu lunar médio disponibilizado pela Swiss Ephemeris.
+
+Nenhuma interpretação desses pontos será realizada.
 
 ---
 
@@ -188,21 +154,19 @@ Essa derivação deve ser tratada posteriormente pela implementação, sem intro
 
 Representa um asteroide ou corpo menor.
 
-Asteroid herda todos os atributos de `CelestialObject`.
+Asteroid utiliza todos os atributos de `CelestialObject`.
 
 ### Objetos suportados
 
-- `QUIRON`
-- `CERES`
-- `PALLAS`
-- `JUNO`
-- `VESTA`
+| ID | Nome |
+|---|---|
+| `QUIRON` | Quíron |
+| `CERES` | Ceres |
+| `PALLAS` | Pallas |
+| `JUNO` | Juno |
+| `VESTA` | Vesta |
 
-### Atributos próprios
-
-Asteroid não possui atributos adicionais nesta tarefa.
-
-### Tipo obrigatório
+### Tipo
 
 ```text
 ASTEROID
@@ -210,183 +174,92 @@ ASTEROID
 
 ---
 
-## 8. Lot
-
-Representa uma parte ou lot astrológico.
-
-Lot herda todos os atributos de `CelestialObject`.
-
-### Objetos inicialmente previstos
-
-- `PARTE_DA_FORTUNA`
-
-### Tipo obrigatório
-
-```text
-LOT
-```
-
-### Classificação especial
-
-A posição de um lot é classificada como `ASTROLOGICAL_DERIVED`, pois depende de uma fórmula astrológica.
-
-| Atributo | Classificação |
-|---|---|
-| `longitude` | ASTROLOGICAL_DERIVED |
-| `latitude` | ASTROLOGICAL_DERIVED |
-| `declination` | ASTROLOGICAL_DERIVED |
-| `right_ascension` | ASTROLOGICAL_DERIVED |
-| `speed` | ASTROLOGICAL_DERIVED |
-| `house` | ASTROLOGICAL_DERIVED |
-
-### Regra desta tarefa
-
-A estrutura de `Lot` será definida, mas a Parte da Fortuna não será calculada nesta tarefa.
-
-Os campos astronômicos permanecerão com valor `null`.
-
----
-
-## 9. FixedStar
+## 8. FixedStar
 
 Representa uma estrela fixa.
 
-FixedStar herda todos os atributos de `CelestialObject`.
+FixedStar utiliza todos os atributos de `CelestialObject`.
 
-### Estrelas suportadas
+### Estrelas previstas
 
-- `ALDEBARAN`
-- `ANTARES`
-- `REGULUS`
-- `FOMALHAUT`
-- `SIRIUS`
-- `SPICA`
-- `ALGOL`
+| ID | Nome |
+|---|---|
+| `ALDEBARAN` | Aldebaran |
+| `ANTARES` | Antares |
+| `REGULUS` | Regulus |
+| `FOMALHAUT` | Fomalhaut |
+| `SIRIUS` | Sirius |
+| `SPICA` | Spica |
+| `ALGOL` | Algol |
 
-### Tipo obrigatório
+### Tipo
 
 ```text
 FIXED_STAR
 ```
 
-### Regra desta tarefa
+### Limite da primeira versão
 
-O adapter da Swiss Ephemeris deve possuir uma interface preparada para cálculos de estrelas fixas.
+A estrutura e a interface do adapter serão preparadas para estrelas fixas.
 
-A inclusão das estrelas no resultado completo será realizada quando o suporte for ativado.
+A ativação dos cálculos poderá ocorrer em uma versão posterior.
 
-Nenhuma regra de conjunção ou orbe será implementada nesta tarefa.
-
----
-
-## 10. Angle
-
-Representa um ângulo calculado para o mapa.
-
-Angle herda a estrutura básica de `CelestialObject`.
-
-### Ângulos previstos
-
-- `ASC`
-- `MC`
-- `VERTEX`
-
-### Tipo obrigatório
-
-```text
-ANGLE
-```
-
-### Classificação especial
-
-| Atributo | Classificação |
-|---|---|
-| `longitude` | RAW_DATA |
-| `latitude` | RAW_DATA |
-| `declination` | RAW_DATA |
-| `right_ascension` | RAW_DATA |
-| `speed` | RAW_DATA |
-| `house` | GEOMETRIC_DERIVED |
-
-Os ângulos são resultados astronômicos calculados pela Swiss Ephemeris a partir do momento e da localização do mapa.
-
-Campos que não forem fornecidos pelo cálculo devem permanecer como `null`.
+A API não calculará conjunções, aspectos ou orbes.
 
 ---
 
-## 11. EclipsePoint
+## 9. EclipsePoint
 
-Representa um ponto de eclipse relacionado ao nascimento.
+Representa a posição astronômica de um eclipse.
 
-EclipsePoint herda todos os atributos de `CelestialObject`.
+EclipsePoint utiliza todos os atributos de `CelestialObject`.
 
 ### Pontos previstos
 
-- `ECLIPSE_SOL_PRE_NATAL`
-- `ECLIPSE_LUA_PRE_NATAL`
-- `ECLIPSE_SOL_POS_NATAL`
-- `ECLIPSE_LUA_POS_NATAL`
+| ID | Descrição |
+|---|---|
+| `ECLIPSE_SOL_PRE_NATAL` | Eclipse solar anterior ao instante informado |
+| `ECLIPSE_LUA_PRE_NATAL` | Eclipse lunar anterior ao instante informado |
+| `ECLIPSE_SOL_POS_NATAL` | Eclipse solar posterior ao instante informado |
+| `ECLIPSE_LUA_POS_NATAL` | Eclipse lunar posterior ao instante informado |
 
-### Tipo obrigatório
+### Tipo
 
 ```text
 ECLIPSE_POINT
 ```
 
-### Regra desta tarefa
+### Limite da primeira versão
 
-Nesta tarefa, somente a estrutura será definida.
+A primeira versão definirá somente a estrutura desses objetos.
 
-Os eclipses não serão pesquisados nem calculados.
-
-Seus campos astronômicos devem permanecer com valor `null`.
+A pesquisa e o cálculo dos eclipses não serão implementados nesta etapa.
 
 ---
 
-## 12. Lilith Média
+## 10. HouseCusp
 
-`LILITH_MEDIA` representa o apogeu lunar médio utilizado pela Swiss Ephemeris.
-
-Para manter a lista oficial de tipos da especificação, ela será modelada como um objeto do tipo `NODE`.
-
-### Identificação
-
-| Atributo | Valor |
-|---|---|
-| `id` | `LILITH_MEDIA` |
-| `name` | `Lilith Média` |
-| `type` | `NODE` |
-
-Sua posição astronômica pode ser obtida pela Swiss Ephemeris sem aplicação de interpretação astrológica.
-
----
-
-## 13. HouseCusp
-
-Representa a cúspide de uma casa.
-
-HouseCusp não herda de `CelestialObject`, pois é uma divisão espacial do mapa e não um corpo celeste.
+Representa a cúspide de uma casa calculada pela Swiss Ephemeris.
 
 ### Atributos
 
 | Atributo | Tipo | Classificação | Descrição |
 |---|---|---|---|
-| `house_number` | integer | RAW_DATA | Número da casa, entre 1 e 12 |
+| `house_number` | integer | RAW_DATA | Número da casa |
 | `longitude` | number | RAW_DATA | Longitude eclíptica da cúspide |
 
 ### Regras
 
-- Devem existir exatamente 12 cúspides.
+- Devem ser retornadas exatamente 12 cúspides.
 - `house_number` deve estar entre `1` e `12`.
-- `longitude` deve estar entre `0` e menos de `360` graus.
-- As cúspides são calculadas pela Swiss Ephemeris.
-- O sistema de casas deve ser informado explicitamente ou usar o padrão documentado pelo projeto.
+- `longitude` deve estar entre `0` e menos de `360`.
+- O sistema de casas utilizado deve ser informado nos metadados.
 
 ---
 
-## 14. ChartAngles
+## 11. ChartAngles
 
-Agrupa os principais ângulos calculados para o mapa.
+Agrupa os principais ângulos calculados pela Swiss Ephemeris.
 
 ### Atributos
 
@@ -398,97 +271,28 @@ Agrupa os principais ângulos calculados para o mapa.
 
 ### Regras
 
-- Todos os valores devem ser expressos em graus.
-- Todos os valores devem estar entre `0` e menos de `360`.
-- Os valores devem ser calculados pela Swiss Ephemeris.
-- Nenhuma interpretação astrológica deve ser adicionada.
+- Os valores devem ser expressos em graus.
+- Os valores devem estar entre `0` e menos de `360`.
+- A API deve retornar apenas os valores, sem interpretação.
 
 ---
 
-## 15. NatalChart
+## 12. ChartRequest
 
-Representa o resultado completo da geração de um mapa natal bruto.
+Representa o corpo JSON enviado pelo usuário para solicitar um cálculo.
 
-NatalChart funciona como o objeto principal de resposta do Astronomy Core.
+### Atributos
 
-### Atributos de entrada
+| Atributo | Tipo | Obrigatório | Classificação | Descrição |
+|---|---|---|---|---|
+| `date` | string | Sim | RAW_DATA | Data civil no formato `AAAA-MM-DD` |
+| `time` | string | Sim | RAW_DATA | Horário no formato `HH:MM:SS` |
+| `timezone` | string | Sim | RAW_DATA | Fuso horário no padrão IANA |
+| `latitude` | number | Sim | RAW_DATA | Latitude geográfica |
+| `longitude` | number | Sim | RAW_DATA | Longitude geográfica |
+| `house_system` | string | Não | RAW_DATA | Código do sistema de casas |
 
-| Atributo | Tipo | Classificação | Descrição |
-|---|---|---|---|
-| `date` | string | RAW_DATA | Data civil informada pelo usuário |
-| `time` | string | RAW_DATA | Horário civil informado pelo usuário |
-| `timezone` | string | RAW_DATA | Fuso horário IANA informado pelo usuário |
-| `latitude` | number | RAW_DATA | Latitude geográfica |
-| `longitude` | number | RAW_DATA | Longitude geográfica |
-| `house_system` | string | RAW_DATA | Sistema de casas utilizado |
-
-### Atributos temporais normalizados
-
-| Atributo | Tipo | Classificação | Descrição |
-|---|---|---|---|
-| `local_datetime` | string | RAW_DATA | Data e hora local normalizadas |
-| `utc_datetime` | string | RAW_DATA | Data e hora convertidas para UTC |
-| `julian_day` | number | RAW_DATA | Dia Juliano utilizado pela Swiss Ephemeris |
-
-### Coleções e resultados
-
-| Atributo | Tipo | Classificação | Descrição |
-|---|---|---|---|
-| `objects` | CelestialObject[] | RAW_DATA | Corpos e pontos calculados |
-| `houses` | HouseCusp[] | RAW_DATA | Doze cúspides das casas |
-| `angles` | ChartAngles | RAW_DATA | Ascendente, MC e Vertex |
-| `metadata` | object | RAW_DATA | Informações técnicas do cálculo |
-
-### Metadados previstos
-
-| Atributo | Tipo | Classificação | Descrição |
-|---|---|---|---|
-| `engine` | string | RAW_DATA | Nome do motor astronômico |
-| `ephemeris` | string | RAW_DATA | Fonte das efemérides |
-| `house_system` | string | RAW_DATA | Sistema de casas aplicado |
-| `generated_at` | string | RAW_DATA | Momento de geração da resposta |
-| `warnings` | string[] | RAW_DATA | Avisos técnicos não interpretativos |
-
----
-
-## 16. Relacionamentos
-
-```text
-NatalChart
- ├── contém vários CelestialObject
- │    ├── Planet
- │    ├── Node
- │    ├── Asteroid
- │    ├── Lot
- │    ├── FixedStar
- │    ├── Angle
- │    └── EclipsePoint
- │
- ├── contém 12 HouseCusp
- │
- └── contém 1 ChartAngles
-```
-
-### Cardinalidades
-
-| Origem | Relacionamento | Destino |
-|---|---|---|
-| `NatalChart` | contém zero ou vários | `CelestialObject` |
-| `NatalChart` | contém exatamente doze | `HouseCusp` |
-| `NatalChart` | contém exatamente um | `ChartAngles` |
-| `Planet` | herda de | `CelestialObject` |
-| `Node` | herda de | `CelestialObject` |
-| `Asteroid` | herda de | `CelestialObject` |
-| `Lot` | herda de | `CelestialObject` |
-| `FixedStar` | herda de | `CelestialObject` |
-| `Angle` | herda de | `CelestialObject` |
-| `EclipsePoint` | herda de | `CelestialObject` |
-
----
-
-## 17. Exemplo conceitual de NatalChart
-
-Este exemplo demonstra apenas a estrutura do domínio.
+### Exemplo
 
 ```json
 {
@@ -497,20 +301,125 @@ Este exemplo demonstra apenas a estrutura do domínio.
   "timezone": "America/Sao_Paulo",
   "latitude": -23.5505,
   "longitude": -46.6333,
-  "house_system": "P",
-  "local_datetime": "2000-01-01T12:00:00-02:00",
-  "utc_datetime": "2000-01-01T14:00:00.000Z",
-  "julian_day": 2451545.083333,
+  "house_system": "P"
+}
+```
+
+### Validações
+
+- `date` deve representar uma data válida.
+- `time` deve representar um horário válido.
+- `timezone` deve ser um fuso horário IANA válido.
+- `latitude` deve estar entre `-90` e `90`.
+- `longitude` geográfica deve estar entre `-180` e `180`.
+- `house_system`, quando omitido, utilizará o padrão documentado pela API.
+
+---
+
+## 13. AstronomicalChart
+
+Representa a resposta astronômica completa da API.
+
+### Atributos
+
+| Atributo | Tipo | Classificação | Descrição |
+|---|---|---|---|
+| `input` | ChartRequest | RAW_DATA | Entrada normalizada |
+| `time` | TimeData | RAW_DATA | Informações temporais do cálculo |
+| `objects` | CelestialObject[] | RAW_DATA e GEOMETRIC_DERIVED | Corpos calculados |
+| `houses` | HouseCusp[] | RAW_DATA | Cúspides das casas |
+| `angles` | ChartAngles | RAW_DATA | Ângulos calculados |
+| `metadata` | Metadata | RAW_DATA | Informações técnicas |
+
+---
+
+## 14. TimeData
+
+Contém os dados temporais normalizados antes da consulta à Swiss Ephemeris.
+
+### Atributos
+
+| Atributo | Tipo | Classificação | Descrição |
+|---|---|---|---|
+| `local_datetime` | string | RAW_DATA | Data e hora no fuso informado |
+| `utc_datetime` | string | RAW_DATA | Data e hora convertidas para UTC |
+| `julian_day` | number | RAW_DATA | Dia Juliano utilizado no cálculo |
+
+---
+
+## 15. Metadata
+
+Contém informações técnicas sobre a geração da resposta.
+
+### Atributos
+
+| Atributo | Tipo | Classificação | Descrição |
+|---|---|---|---|
+| `service` | string | RAW_DATA | Nome do serviço |
+| `service_version` | string | RAW_DATA | Versão da API |
+| `astronomical_engine` | string | RAW_DATA | Motor astronômico utilizado |
+| `house_system` | string | RAW_DATA | Sistema de casas utilizado |
+| `generated_at` | string | RAW_DATA | Data e hora de geração |
+| `warnings` | string[] | RAW_DATA | Avisos técnicos |
+
+---
+
+## 16. Relacionamentos
+
+```text
+ChartRequest
+     |
+     v
+AstronomicalChart
+     |
+     +-- TimeData
+     |
+     +-- CelestialObject[]
+     |     |
+     |     +-- Planet
+     |     +-- Node
+     |     +-- Asteroid
+     |     +-- FixedStar
+     |     +-- EclipsePoint
+     |
+     +-- HouseCusp[12]
+     |
+     +-- ChartAngles
+     |
+     +-- Metadata
+```
+
+---
+
+## 17. Exemplo de resposta
+
+Os números deste exemplo são apenas ilustrativos.
+
+```json
+{
+  "input": {
+    "date": "2000-01-01",
+    "time": "12:00:00",
+    "timezone": "America/Sao_Paulo",
+    "latitude": -23.5505,
+    "longitude": -46.6333,
+    "house_system": "P"
+  },
+  "time": {
+    "local_datetime": "2000-01-01T12:00:00-02:00",
+    "utc_datetime": "2000-01-01T14:00:00.000Z",
+    "julian_day": 2451545.083333
+  },
   "objects": [
     {
       "id": "SOL",
       "name": "Sol",
       "type": "PLANET",
       "longitude": 280.5,
-      "latitude": 0.0001,
+      "ecliptic_latitude": 0.0001,
       "declination": -23.0,
       "right_ascension": 281.2,
-      "speed": 1.019,
+      "longitude_speed": 1.019,
       "house": 10
     }
   ],
@@ -526,8 +435,9 @@ Este exemplo demonstra apenas a estrutura do domínio.
     "vertex": 190.0
   },
   "metadata": {
-    "engine": "Astrologica Engine",
-    "ephemeris": "Swiss Ephemeris",
+    "service": "Motor Astronômico",
+    "service_version": "1.0.0",
+    "astronomical_engine": "Swiss Ephemeris",
     "house_system": "P",
     "generated_at": "2026-06-11T12:00:00.000Z",
     "warnings": []
@@ -535,45 +445,42 @@ Este exemplo demonstra apenas a estrutura do domínio.
 }
 ```
 
-Os números desse exemplo são apenas ilustrativos e não devem ser utilizados como resultado astronômico real.
-
 ---
 
-## 18. Limites desta tarefa
+## 18. Dados excluídos
 
-Nesta tarefa, o modelo não deve calcular:
+O Motor Astronômico não produzirá:
 
-- Aspectos.
-- Orbes.
-- Dignidades.
-- Recepção.
-- Dispositores.
-- Almuten.
-- Sect.
-- Hayz.
-- Haym.
-- Lots derivados.
-- Sizígias.
-- Profeções.
-- Firdaria.
-- Zodiacal Releasing.
-- Hyleg.
-- Alcocoden.
-- Kurios.
-- Oikodespotes.
-- Configurações planetárias.
-- Antíscia.
-- Dodecatemórias.
-- Eclipses pré-natais ou pós-natais.
-
-Essas funcionalidades pertencem a camadas futuras e não podem ser introduzidas no Astronomy Core.
+- Aspectos astrológicos
+- Orbes
+- Dignidades
+- Recepções
+- Dispositores
+- Almuten
+- Sect
+- Hayz ou Haym
+- Lots astrológicos
+- Sizígias interpretativas
+- Profeções
+- Firdaria
+- Zodiacal Releasing
+- Hyleg
+- Alcocoden
+- Kurios
+- Oikodespotes
+- Configurações planetárias
+- Antíscia
+- Dodecatemórias
+- Interpretações
+- Pontuações de força
+- Relatórios astrológicos
 
 ---
 
 ## 19. Regra fundamental
 
-A camada Astronomy Core deve responder somente à seguinte pergunta:
+O Motor Astronômico deve responder somente:
 
-> Onde estavam astronomicamente os corpos, as casas e os ângulos no momento e local informados?
+> Quais eram as posições astronômicas dos corpos, casas e ângulos no instante e local informados?
 
-Ela não deve responder o que essas posições significam astrologicamente.
+Qualquer interpretação ou método astrológico pertence a outro sistema e não faz parte deste repositório.
