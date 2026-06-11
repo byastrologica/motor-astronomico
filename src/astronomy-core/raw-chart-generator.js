@@ -3,6 +3,7 @@ import { DateTime, IANAZone } from "luxon";
 import {
   bodyIds,
   calculateBody,
+  calculateFixedStar,
   calculateHousePosition,
   calculateHouses,
   calculateJulianDay,
@@ -28,6 +29,16 @@ const BODY_DEFINITIONS = Object.freeze([
   { id: "PALLAS", name: "Pallas", type: "ASTEROID", required: false },
   { id: "JUNO", name: "Juno", type: "ASTEROID", required: false },
   { id: "VESTA", name: "Vesta", type: "ASTEROID", required: false },
+]);
+
+const FIXED_STAR_DEFINITIONS = Object.freeze([
+  { id: "ALDEBARAN", name: "Aldebaran", catalogName: "Aldebaran" },
+  { id: "ANTARES", name: "Antares", catalogName: "Antares" },
+  { id: "REGULUS", name: "Regulus", catalogName: "Regulus" },
+  { id: "FOMALHAUT", name: "Fomalhaut", catalogName: "Fomalhaut" },
+  { id: "SIRIUS", name: "Sirius", catalogName: "Sirius" },
+  { id: "SPICA", name: "Spica", catalogName: "Spica" },
+  { id: "ALGOL", name: "Algol", catalogName: "Algol" },
 ]);
 
 export class ValidationError extends Error {
@@ -142,6 +153,23 @@ function createSouthNode(northNode) {
   };
 }
 
+function locateHouse({
+  astronomicalData,
+  housesData,
+  obliquity,
+  latitude,
+  houseSystem,
+}) {
+  return calculateHousePosition({
+    armc: housesData.armc,
+    latitude,
+    obliquity,
+    houseSystem,
+    longitude: astronomicalData.longitude,
+    latitudeEcliptica: astronomicalData.latitudeEcliptica,
+  });
+}
+
 function calculateObject({
   definition,
   julianDay,
@@ -155,21 +183,54 @@ function calculateObject({
     bodyIds[definition.id],
   );
 
-  const house = calculateHousePosition({
-    armc: housesData.armc,
-    latitude,
-    obliquity,
-    houseSystem,
-    longitude: astronomicalData.longitude,
-    latitudeEcliptica: astronomicalData.latitudeEcliptica,
-  });
-
   return {
     id: definition.id,
     name: definition.name,
     type: definition.type,
     ...astronomicalData,
-    house,
+    house: locateHouse({
+      astronomicalData,
+      housesData,
+      obliquity,
+      latitude,
+      houseSystem,
+    }),
+  };
+}
+
+function calculateStar({
+  definition,
+  julianDay,
+  housesData,
+  obliquity,
+  latitude,
+  houseSystem,
+}) {
+  const astronomicalData = calculateFixedStar(
+    julianDay,
+    definition.catalogName,
+  );
+
+  return {
+    id: definition.id,
+    name: definition.name,
+    type: "FIXED_STAR",
+    catalogName: astronomicalData.catalogName,
+    longitude: astronomicalData.longitude,
+    latitudeEcliptica: astronomicalData.latitudeEcliptica,
+    declination: astronomicalData.declination,
+    rightAscension: astronomicalData.rightAscension,
+    speedLongitude: astronomicalData.speedLongitude,
+    speedLatitude: astronomicalData.speedLatitude,
+    speedRadial: astronomicalData.speedRadial,
+    distanceAU: astronomicalData.distanceAU,
+    house: locateHouse({
+      astronomicalData,
+      housesData,
+      obliquity,
+      latitude,
+      houseSystem,
+    }),
   };
 }
 
@@ -232,13 +293,12 @@ export function generateRawChart(input) {
   if (northNode) {
     const southNode = createSouthNode(northNode);
 
-    southNode.house = calculateHousePosition({
-      armc: housesData.armc,
-      latitude: normalized.latitude,
+    southNode.house = locateHouse({
+      astronomicalData: southNode,
+      housesData,
       obliquity,
+      latitude: normalized.latitude,
       houseSystem: normalized.houseSystem,
-      longitude: southNode.longitude,
-      latitudeEcliptica: southNode.latitudeEcliptica,
     });
 
     const northNodeIndex = objects.findIndex(
@@ -246,6 +306,25 @@ export function generateRawChart(input) {
     );
 
     objects.splice(northNodeIndex + 1, 0, southNode);
+  }
+
+  for (const definition of FIXED_STAR_DEFINITIONS) {
+    try {
+      objects.push(
+        calculateStar({
+          definition,
+          julianDay,
+          housesData,
+          obliquity,
+          latitude: normalized.latitude,
+          houseSystem: normalized.houseSystem,
+        }),
+      );
+    } catch (error) {
+      warnings.push(
+        `${definition.id} nao foi calculada: ${error.message}`,
+      );
+    }
   }
 
   return {
